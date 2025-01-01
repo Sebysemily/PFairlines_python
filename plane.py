@@ -1,27 +1,25 @@
-from operator import truediv
-
 
 class Plane:
     """Represents a plane"""
-    def __init__(self, plane_id, name, rows=5, columns=("A", "B", "C", "D")):
+    def __init__(self, plane_id, name, rows=5, cols=("A", "B", "C", "D")):
         self.plane_id = plane_id
         self.name = name
         self.rows = rows
-        self.columns = columns
+        self.cols = cols
         self.seats = {}
 
 
     def initialize_seats(self, day):
         for row in range(1, self.rows + 1):
-            for column in self.columns:
-                seat = f"{column}{row}}"
+            for columns in self.cols:
+                seat = f"{columns}{row}"
                 insert_seat(self.plane_id, seat, day)
 
 
     def load_seats(self, day):
         self.seats = {}
         query = """
-        SELECT seat, resereved
+        SELECT seat, reserved
         from seats
         WHERE plane_id = %s AND day = %s;
         """
@@ -34,10 +32,10 @@ class Plane:
 
     def display_seats(self):
         print(f"\nSeating arrangement for {self.name}:")
-        print("    "+" ".join(self.columns))
+        print("    "+" ".join(self.cols))
         for row in range(1, self.rows+1):
             row_display = []
-            for column in self.columns:
+            for column in self.cols:
                 seat = f"{column}{row}"
                 row_display.append("X" if self.seats.get(seat, False) else "*")
             print(f"Row {row:<2}: " + " ".join(row_display))
@@ -53,8 +51,8 @@ class Plane:
             return False
         success = reserve_seat(self.plane_id, seat, day)
         if success:
-            self.seats[seat] = true
-            print(f"Seat {seat} has been succesfully reserved.")
+            self.seats[seat] = True
+            print(f"Seat {seat} has been successfully reserved.")
             return True
         else:
             print(f"Failed to reserve seat {seat}.")
