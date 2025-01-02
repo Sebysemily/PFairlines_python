@@ -25,6 +25,8 @@ class DatabaseManager:
             raise ValueError("Invalid credentials, connection not established exiting...")
         elif not self._set_table_name():
             raise ValueError("Invalid table name exiting...")
+        else:
+            print(f"Valid connection established")
 
     def __del__(self):
         pass
@@ -58,7 +60,7 @@ class DatabaseManager:
             if is_select_query:
                 result = cursor.fetchall()
                 if not result:
-                    print("no matching data found")
+                    print("No matching data found in the database")
                     cursor.close()
                     return None
             elif not is_select_query and "returning" in query.lower():
@@ -73,15 +75,10 @@ class DatabaseManager:
 
         except (db.DatabaseError, ConnectionError) as e:
             print(f"Error while executing query: {e}")
-            retry_count = 0
-            if retry_count > self.max_retries:
-                raise ValueError("Max retries reached. Query failed.")
             if self.check_connection():
                 if commit:
                     self._conn.rollback()
                     print("transaction rollback due to error")
-                print(f"Retrying transaction, attempts left: {self.max_retries - retry_count}")
-                retry_count += 1
                 return self.__execute_query(query, params, commit)
 
     def __stop_connection(self):
@@ -133,7 +130,6 @@ class DatabaseManager:
                     retry_count += 1
                     print(f"Re-connection failed. Retrying in {self.retry_delay} seconds...")
                     time.sleep(self.retry_delay)
-
             print("Failed to reconnect. after maximum retries.")
             return False
         finally:
@@ -239,12 +235,12 @@ class DatabaseManager:
                WHERE table_name = %s
                """
         columns_data = self.__execute_query(query, (self.user_table_name,))
-        if columns_data is None:
-            print("Error no data returned for table columns")
+        if columns_data is False:
+            print(f"Error no data returned for table columns in {self.user_table_name}")
             return False
 
         if not all(len(column_data) == 2 for column_data in columns_data):
-            print(f"Unexpected data structure for table columns: {columns_data}")
+            print(f"Unexpected data structure for table columns: {columns_data} in {self.user_table_name}")
             return False
 
         expected_columns_and_types = {
@@ -259,10 +255,10 @@ class DatabaseManager:
         missing_column_names = expected_columns_names - actual_column_names
         extra_column_names = actual_column_names - expected_columns_names
         if missing_column_names:
-            print(f"Missing columns: {', '.join(missing_column_names)}")
+            print(f"Missing columns: {', '.join(missing_column_names)} in {self.user_table_name}")
             return False
         if extra_column_names:
-            print(f"Extra columns: {', '.join(extra_column_names)}")
+            print(f"Extra columns: {', '.join(extra_column_names)} in {self.user_table_name}")
             return False
 
         for column, actual_type in columns_data:
@@ -272,7 +268,7 @@ class DatabaseManager:
                       f" found '{actual_type}'")
                 return False
 
-        print("Table structure valid")
+        print(f"Selected table structure valid in {self.user_table_name}")
         return True
 
     def _set_table_name(self) -> bool:
@@ -334,6 +330,7 @@ class DatabaseManager:
                             RETURNING plane_id;"""
             result = self.__execute_query(query, (name, rows, columns), True)
             if result:
+                print(f"Plane ID: '{result[0][0]}' inserted successfully")
                 return result[0][0]
         else:
             query_n = f"""INSERT INTO {self.table_name} (plane_id, name, rows, cols) 
@@ -341,6 +338,7 @@ class DatabaseManager:
                               RETURNING plane_id;"""
             result_n = self.__execute_query(query_n, (plane_id, name, rows, columns), True)
             if result_n:
+                print(f"Plane ID: '{result_n[0][0]}' inserted successfully")
                 return result_n[0][0]
         return None
 
@@ -362,7 +360,7 @@ class DatabaseManager:
             updates.append("rows = %s")
             params.append(rows)
         if columns is not None:
-            updates.append("columns = %s")
+            updates.append("cols = %s")
             params.append(columns)
         if not updates:
             print("No updates provided")
@@ -376,6 +374,10 @@ class DatabaseManager:
         params.append(plane_id)
 
         result = self.__execute_query(query, tuple(params), True)
+        if result is None:
+            print(f"Plane ID: '{plane_id}' not found")
+        else:
+            print(f"Plane ID: '{plane_id}' updated successfully")
         return result
 
     def delete_plane(self, plane_id: int) -> bool:
@@ -388,6 +390,7 @@ class DatabaseManager:
         result = self.__execute_query(query, (plane_id,), True)
         if result:
             print(f"Plane ID: {plane_id} deleted")
+            return True
         else:
             print(f"Plane ID: {plane_id} not found")
             return False
