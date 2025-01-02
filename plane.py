@@ -8,13 +8,11 @@ class Plane:
         self.cols = cols
         self.seats = {}
 
-
     def initialize_seats(self, day):
         for row in range(1, self.rows + 1):
             for columns in self.cols:
                 seat = f"{columns}{row}"
                 insert_seat(self.plane_id, seat, day)
-
 
     def load_seats(self, day):
         self.seats = {}
@@ -28,8 +26,6 @@ class Plane:
             for seat, reserved in seat_data:
                 self.seats[seat] = reserved
 
-
-
     def display_seats(self):
         print(f"\nSeating arrangement for {self.name}:")
         print("    "+" ".join(self.cols))
@@ -39,8 +35,6 @@ class Plane:
                 seat = f"{column}{row}"
                 row_display.append("X" if self.seats.get(seat, False) else "*")
             print(f"Row {row:<2}: " + " ".join(row_display))
-
-
 
     def reserve_seat(self, seat, day):
         if seat not in self.seats:
