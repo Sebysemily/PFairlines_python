@@ -4,9 +4,21 @@ import time
 
 
 class DatabaseManager:
+    """
+    Manages a database connection for plane objects.
+    """
 
     def __init__(self, database: str, user: str, password: str, host: str = "localhost", port: str = "5432",
                  table_name: str = "planes") -> None:
+        """
+        Initialize a connection to the database, stop running if valid connection is not established.
+        :param database: database name
+        :param user: username
+        :param password: password
+        :param host: host name (default: localhost)
+        :param port: port connection (default: 5432)
+        :param table_name: table name (default: planes)
+        """
         self.user_credentials = {
             "database": database,
             "user": user,

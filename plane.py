@@ -1,56 +1,56 @@
+from utils.db import DatabaseManager
+
 
 class Plane:
-    """Represents a plane"""
-    def __init__(self, plane_id, name, rows=5, cols=("A", "B", "C", "D")):
+    """
+    Represents a plane object
+    """
+    def __init__(self, db_manager: DatabaseManager, plane_id: int = None, name: str = None, rows: int = None,
+                 cols: list[str] = None):
+        """
+        Constructor, if None ID is provided, a new object is created.
+        :param db_manager (DatabaseManager) A Database Manager instance
+        :param plane_id (int, optional) The id of the plane, if None creates a new plane object in the table
+        :param name (str, opt) The name of the plane (Required if plane_id is not provided or invalid)
+        :param rows (int, opt) The number of rows in the plane (Required if plane_id is not provided or invalid)
+        :param cols (list[str], opt) The list of column names in the plane
+        (Required if plane_id is not provided or invalid)
+        :
+        """
+        self.db_manager = db_manager
         self.plane_id = plane_id
         self.name = name
         self.rows = rows
         self.cols = cols
-        self.seats = {}
-
-    def initialize_seats(self, day):
-        for row in range(1, self.rows + 1):
-            for columns in self.cols:
-                seat = f"{columns}{row}"
-                insert_seat(self.plane_id, seat, day)
-
-    def load_seats(self, day):
-        self.seats = {}
-        query = """
-        SELECT seat, reserved
-        from seats
-        WHERE plane_id = %s AND day = %s;
-        """
-        seat_data = execute_query(query, (self.plane_id, day))
-        if seat_data:
-            for seat, reserved in seat_data:
-                self.seats[seat] = reserved
-
-    def display_seats(self):
-        print(f"\nSeating arrangement for {self.name}:")
-        print("    "+" ".join(self.cols))
-        for row in range(1, self.rows+1):
-            row_display = []
-            for column in self.cols:
-                seat = f"{column}{row}"
-                row_display.append("X" if self.seats.get(seat, False) else "*")
-            print(f"Row {row:<2}: " + " ".join(row_display))
-
-    def reserve_seat(self, seat, day):
-        if seat not in self.seats:
-            print(f"Seat {seat} does not exist in this plane. ")
-            return False
-        if self.seats[seat]:
-            print(f"Seat {seat} is already reserved.")
-            return False
-        success = reserve_seat(self.plane_id, seat, day)
-        if success:
-            self.seats[seat] = True
-            print(f"Seat {seat} has been successfully reserved.")
-            return True
+        if self.plane_id:
+            if self._load_from_db() is None:
+                print("Defaulting to inserting new plane")
+                self._insert_to_db()
         else:
-            print(f"Failed to reserve seat {seat}.")
-            return False
+            self._insert_to_db()
 
-    def get_available_seats(self, day):
-        return get_available_seats(self.plane_id, day)
+    def _load_from_db(self) -> bool:
+        """
+        Loads the plane from the database with a given ID
+        """
+        data = self.db_manager.load_plane(self.plane_id)
+        if data:
+            self.name = data['name']
+            self.rows = data['rows']
+            self.cols = data['cols']
+        else:
+            return False
+        return True
+
+    def _insert_to_db(self):
+        """
+        Inserts a new plane to the database
+        """
+        try:
+            self.plane_id = self.db_manager.insert_plane(self.rows, self.name, self.cols)
+            if self.plane_id:
+                print(f"New plane ID: , {self.plane_id} inserted successfully in table")
+        except Exception as e:
+            raise ValueError(f"Error: Failed to insert new plane with value {e}")
+
+    
