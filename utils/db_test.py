@@ -1,5 +1,5 @@
 
-from db import DatabaseManager
+from Planesdb import PlaneDatabaseManager
 '''
 conn = pg8000.connect(host="localhost", user="postgres", password="1234", port="5432")
 cur = conn.cursor()
@@ -15,8 +15,8 @@ cur.close()
 conn.close()
 '''
 
-db_manager = DatabaseManager(host="localhost", database="postgres", user= "postgres", password="1234", port="5432",
-                       table_name="planes")
+db_manager = PlaneDatabaseManager(host="localhost", database="postgres", user="postgres", password="1234", port="5432",
+                                  table_name="planes")
 
 
 db_manager.check_connection()
@@ -32,5 +32,7 @@ plane_data = db_manager.load_plane(plane_id)
 
 updated = db_manager.update_plane(plane_id, name="Updated Plane A", rows=15, columns=["D", "E", "F"])
 
-print(plane_id, plane_data, updated)
+updated_plane_data = db_manager.load_plane(plane_id)
+
+print(plane_id, plane_data, updated, updated_plane_data)
 
