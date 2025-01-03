@@ -1,4 +1,4 @@
-from utils.TableManager import TableManager
+from utils.TableManagerdb import TableManager
 
 
 class PlaneTableManager(TableManager):
@@ -43,3 +43,21 @@ class PlaneTableManager(TableManager):
         Alias for delete_record specific to planes.
         """
         return self.delete_record(plane_id)
+
+    def generate_seats_identifiers(self, plane_id: int) -> list:
+        """
+        Generate seats identifiers for a plane.
+        :param plane_id: primary key of the plane
+        :return:  list of seats identifiers
+        """
+        plane_data = self.load_plane(plane_id)
+        if not plane_data:
+            raise ValueError(f"Plane ID: '{plane_id}' not found")
+        rows = plane_data["rows"]
+        cols = plane_data["cols"]
+
+        seats_identifiers = []
+        for row in range(1, rows + 1):
+            for col in cols:
+                seats_identifiers.append(f"{row}{col}")
+        return seats_identifiers

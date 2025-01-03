@@ -146,12 +146,20 @@ class TableManager(DatabaseManager):
         """
         data_keys = set(data.keys())
         expected_columns = set(self.expected_columns_and_types.keys())
-
+        include_primary_key = self.primary_key_column in data
         if is_update:
             unexpected_columns = data_keys - expected_columns
             if unexpected_columns:
                 raise ValueError(
                     f"Error: Unexpected columns: {', '.join(unexpected_columns)} in data provided for update.")
+        elif include_primary_key:
+            pk_value = data[self.primary_key_column]
+            expected_type = self.expected_columns_and_types.get(self.primary_key_column)
+            if not self.__validate_column_type(pk_value, expected_type):
+                raise TypeError(
+                    f"Error: Primary key '{self.primary_key_column}' expects a value of type '{expected_type}', "
+                    f"but got '{type(pk_value).__name__}' with value '{pk_value}'."
+                )
         else:
             required_columns = expected_columns - {self.primary_key_column}
             missing_data_columns = required_columns - data_keys
@@ -204,7 +212,7 @@ class TableManager(DatabaseManager):
             print(f"Table structure from table '{self.user_table_name}' is valid")
             return True
 
-    def load_record(self, primary_key: int) -> dict | None:
+    def load_record(self, primary_key) -> dict | None:
         """
         Load a record from the database.
         :param primary_key: the primary key of the record.
@@ -226,6 +234,8 @@ class TableManager(DatabaseManager):
         """
         returning_column = returning_column or self.primary_key_column
 
+        include_primary_key = self.primary_key_column in data
+
         self._check_table_structure(data)
 
         columns = ', '.join(data.keys())
@@ -243,7 +253,7 @@ class TableManager(DatabaseManager):
         print("Record inserted successfully")
         return None
 
-    def update_record(self, primary_key: int, data: dict) -> bool:
+    def update_record(self, primary_key, data: dict) -> bool:
         """
         Update a record in the database.
         :param primary_key: the primary key of the record.
@@ -271,7 +281,7 @@ class TableManager(DatabaseManager):
         print("Failed to update record with '{self.primary_key_column}': '{primary_key}'")
         return False
 
-    def delete_record(self, primary_key: int) -> bool:
+    def delete_record(self, primary_key) -> bool:
         """
         Delete a record from the database.
         :param primary_key: the primary key of the record.
