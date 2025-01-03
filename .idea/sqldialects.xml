@@ -3,6 +3,7 @@
   <component name="SqlDialectMappings">
     <file url="file://$PROJECT_DIR$/plane.py" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/utils/Planesdb.py" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/utils/TableManager.py" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/utils/db.py" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/utils/db_test.py" dialect="PostgreSQL" />
   </component>

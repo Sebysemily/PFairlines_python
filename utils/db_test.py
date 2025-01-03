@@ -1,5 +1,5 @@
 
-from Planesdb import PlaneDatabaseManager
+from Planesdb import PlaneTableManager
 '''
 conn = pg8000.connect(host="localhost", user="postgres", password="1234", port="5432")
 cur = conn.cursor()
@@ -15,24 +15,31 @@ cur.close()
 conn.close()
 '''
 
-db_manager = PlaneDatabaseManager(host="localhost", database="postgres", user="postgres", password="1234", port="5432",
-                                  table_name="planes")
+db_manager = PlaneTableManager(host="localhost", database="postgres", user="postgres", password="1234", port="5432",
+                               table_name="planes")
 
 
 db_manager.check_connection()
 db_manager.reconnect()
 
-plane_id = db_manager.insert_plane(rows=10, name="Plane A", columns=["A", "B", "C"])
+new_plane = {
+    "name": "Airbus A320",
+    "rows": 20,
+    "cols": ["A", "B", "C", "D", "E", "F"]
+}
+new_plane_id = db_manager.insert_plane(new_plane)
+print(f"Inserted Plane ID: {new_plane_id}")
 
-# Test loading the inserted plane by ID
-plane_data = db_manager.load_plane(plane_id)
+# Load a plane
+plane_data = db_manager.load_plane(new_plane_id)
+print("Loaded Plane Data:", plane_data)
 
+# Update a plane
+db_manager.update_plane(new_plane_id, {"name": "Airbus A320 Updated", "rows": 30})
 
-# Test updating the plane
+plane_data = db_manager.load_plane(new_plane_id)
 
-updated = db_manager.update_plane(plane_id, name="Updated Plane A", rows=15, columns=["D", "E", "F"])
-
-updated_plane_data = db_manager.load_plane(plane_id)
-
-print(plane_id, plane_data, updated, updated_plane_data)
+print("Updated Plane Data:", plane_data)
+# Delete a plane
+db_manager.delete_plane(new_plane_id)
 
