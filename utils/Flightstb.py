@@ -17,29 +17,38 @@ class FlightsTableManager(TableManager):
     primary_key_column = "flight_id"
 
     def __init__(self, database: str, user: str, password: str, host: str = "localhost", port: str = "5432",
-                 table_name: str = "flights"):
+                 table_name: str = "flights", ):
         """
         Initialize the FlightsTableManager
         """
         super().__init__(database, user, password, host, port, table_name)
 
-    def insert_flight(self, data: dict, returning_column: str = None):
+    def insert_flight(self, seats_table_manager: SeatsTableManager, plane_manager: PlaneTableManager,
+                      data: dict, returning_column: str = None):
         """
         Alias for insert_record specific to flights.
         """
-        return self.insert_record(data, returning_column)
+        flight_id = super().insert_record(data)
+        self.create_seats_for_flight(flight_id, seats_table_manager, plane_manager)
+        flight_data = self.load_record(flight_id)
+        returning_column = returning_column or self.primary_key_column
+
+        if returning_column not in flight_data:
+            raise ValueError(f"Invalid returning column: {returning_column}")
+
+        return flight_data[returning_column]
 
     def load_flight(self, flight_id: int):
         """
         Alias for load_record specific to flights.
         """
-        return self.load_record(flight_id)
+        return super().load_record(flight_id)
 
     def update_flight(self, flight_id: int, data: dict) -> bool:
         """
         Alias for update_record specific to flights.
         """
-        return self.update_record(flight_id, data)
+        return super().update_record(flight_id, data)
 
     def delete_flight(self, flight_id: int) -> bool:
         """
@@ -67,8 +76,7 @@ class FlightsTableManager(TableManager):
             {
                 "seat_id": f"{flight_id}-{seat_id}",
                 "flight_id": flight_id,
-                "is_reserved": False,
-                "reservation_details": ""
+                "reservation_id": 0,
             }
             for seat_id in seat_identifiers
         ]
@@ -77,3 +85,4 @@ class FlightsTableManager(TableManager):
             seats_table_manager.insert_seat(seat)
 
         print(f"Seats for flight '{flight_id}' created successfully.")
+

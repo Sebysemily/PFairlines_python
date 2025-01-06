@@ -83,7 +83,6 @@ class DatabaseManager:
                 if commit:
                     DatabaseManager._shared_conn.rollback()
                     print("transaction rollback due to error")
-                return self._execute_query(query, params, commit)
 
     def __stop_connection(self):
         """

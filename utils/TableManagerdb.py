@@ -133,6 +133,8 @@ class TableManager(DatabaseManager):
             "real": float,
             "double precision": float,
             "array": list,
+            "character varying(255)": str,
+            "character varying(50)": str,
         }
         expected_type = type_mapping.get(column_type.lower())
         return isinstance(value, expected_type)
@@ -212,17 +214,18 @@ class TableManager(DatabaseManager):
             print(f"Table structure from table '{self.user_table_name}' is valid")
             return True
 
-    def load_record(self, primary_key) -> dict | None:
+    def load_record(self, primary_key, column=None) -> dict | None:
         """
         Load a record from the database.
         :param primary_key: the primary key of the record.
+        :param column: The column to search by (default is primary key).
         :return: A dictionary containing the record data.
         """
-        query = f"SELECT * FROM {self.table_name} WHERE {self.primary_key_column} = %s"
+        column = column or self.primary_key_column
+        query = f"SELECT * FROM {self.table_name} WHERE {column} = %s"
         result = super()._execute_query(query, (primary_key,))
         if not result:
-            print(f"Error: Record with '{self.primary_key_column}': '{primary_key}' not found")
-            return None
+            raise ValueError(f"Error: Record with '{column}': '{primary_key}' not found")
         return dict(zip(self._columns, result[0]))
 
     def insert_record(self, data: dict, returning_column: str = None):
@@ -234,9 +237,10 @@ class TableManager(DatabaseManager):
         """
         returning_column = returning_column or self.primary_key_column
 
-        include_primary_key = self.primary_key_column in data
-
         self._check_table_structure(data)
+
+        if returning_column and returning_column not in self._columns:
+            raise ValueError(f"Invalid returning column: {returning_column}")
 
         columns = ', '.join(data.keys())
         placeholders = ', '.join(['%s'] * len(data))
@@ -265,21 +269,23 @@ class TableManager(DatabaseManager):
             return False
 
         self._check_table_structure(data, True)
+        try:
+            updates = ', '.join([f"{col} = %s" for col in data.keys()])
+            query = f"""
+                        UPDATE {self.table_name} 
+                        SET {updates}
+                        WHERE {self.primary_key_column} = %s
+                        """
+            params = list(data.values()) + [primary_key]
+            result = super()._execute_query(query, tuple(params), True)
 
-        updates = ', '.join([f"{col} = %s" for col in data.keys()])
-        query = f"""
-                    UPDATE {self.table_name} 
-                    SET {updates}
-                    WHERE {self.primary_key_column} = %s
-                    """
-        params = list(data.values()) + [primary_key]
-        result = super()._execute_query(query, tuple(params), True)
-
-        if result:
-            print(f"Record with '{self.primary_key_column}': '{primary_key}' updated successfully")
-            return True
-        print("Failed to update record with '{self.primary_key_column}': '{primary_key}'")
-        return False
+            if result:
+                print(f"Record with '{self.primary_key_column}': '{primary_key}' updated successfully")
+                return True
+        except ValueError as e:
+            print(f"Failed to update record with '{self.primary_key_column}': '{primary_key}'")
+            print(f"With error: {e}")
+            return False
 
     def delete_record(self, primary_key) -> bool:
         """
@@ -295,3 +301,19 @@ class TableManager(DatabaseManager):
         else:
             print(f"Failed to delete record with: {self.primary_key_column}: '{primary_key}' not found")
             return False
+
+    def load_all_records(self) -> list[dict]:
+        """
+        Load all records from the table.
+        :return: A list of dictionaries containing all records in the table.
+        """
+        try:
+            query = f"SELECT * FROM {self.table_name}"
+            results = super()._execute_query(query, ())
+            if not results:
+                print(f"No records found in table '{self.table_name}'.")
+                return []
+        except ValueError as e:
+            print(f"Failed to load all records from table '{self.table_name}'. With error: {e}")
+            return []
+        return [dict(zip(self._columns, row)) for row in results]

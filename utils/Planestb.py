@@ -11,6 +11,7 @@ class PlaneTableManager(TableManager):
         "rows": "integer",
         "cols": "ARRAY",
     }
+
     primary_key_column = "plane_id"
 
     def __init__(self, database: str, user: str, password: str, host: str = "localhost", port: str = "5432",

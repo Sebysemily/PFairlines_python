@@ -9,8 +9,7 @@ class SeatsTableManager(TableManager):
     expected_columns_and_types = {
         "seat_id": "character varying",
         "flight_id": "integer",
-        "is_reserved": "boolean",
-        "reservation_details": "character varying",
+        "reservation_id": "integer",
     }
     primary_key_column = "seat_id"
 
@@ -25,79 +24,57 @@ class SeatsTableManager(TableManager):
         """
         Alias for insert_record specific to seats
         """
-        return self.insert_record(data, returning_column)
+        return super().insert_record(data, returning_column)
 
-    def load_seat(self, seat_id: str):
+    def load_seats(self, seat_id, column_to_search=None):
         """
         Alias for load_record specific to seats
         """
-        return self.load_record(seat_id)
+        return super().load_record(seat_id, column_to_search)
 
     def update_seat(self, seat_id: str, data: dict) -> bool:
         """
         alias for update_record specific to seats
         """
-        return self.update_record(seat_id, data)
+        return super().update_record(seat_id, data)
 
     def delete_seat(self, seat_id: str) -> bool:
         """
         alias for delete_record specific to seats
         """
-        return self.delete_record(seat_id)
+        return super().delete_record(seat_id)
 
-    def is_seat_available(self, seat_id: str) -> bool:
+    def is_seat_available(self, seat_id: str):
         """
         Checks if a seat is available.
         :param seat_id: The seat to check.
         :return: bool, true if available
         """
-        query = f"SELECT is_reserved FROM {self.table_name} WHERE seat_id = %s"
-        result = super()._execute_query(query, (seat_id,))
-        if not result:
-            raise ValueError(f"Seat ID '{seat_id}' not found.")
-        return not result[0][0]
+        seat_data = self.load_seats(seat_id)
+        return seat_data[0][0] in (None, "", 0)
 
-    def reserve_seat(self, seat_id: str, reservation_details: str) -> bool:
-        """
-        Reserve a seat.
-        :param seat_id: The seat to reserve.
-        :param reservation_details: The reservation details.
-        :return: bool, true if reserved
-        """
-        seat_data = self.load_record(seat_id)
-        if not seat_data:
-            raise ValueError(f"Seat ID '{seat_id}' not found.")
-        if seat_data["is_reserved"]:
-            print(f"Seat ID '{seat_id}' is already reserved.")
-            return False
-        return self.update_seat(seat_id, {"is_reserved": True, "reservation_details": reservation_details})
-
-    def cancel_reservation(self, seat_id: str) -> bool:
-        """
-        Cancel a reserved seat.
-        :param seat_id: The seat to cancel.
-        :return: bool, true if cancelled
-        """
-        seat_data = self.load_record(seat_id)
-        if not seat_data:
-            raise ValueError(f"Seat ID '{seat_id}' not found.")
-        if not seat_data["is_reserved"]:
-            print(f"Seat ID '{seat_id}' is not reserved.")
-            return False
-        return self.update_seat(seat_id, {"is_reserved": False, "reservation_details": None})
-
-    def list_available_seats(self, flight_id: int) -> list[dict]:
+    def list_available_seats_for_flight(self, flight_id: int) -> list[dict]:
         """
         List available seats for a flight.
         :param flight_id: The ID of the flight
         :return: A list containing the available seats
         """
-        query = f"SELECT seat_id FROM {self._table_name} WHERE flight_id = %s AND is_reserved = FALSE"
-        results = super()._execute_query(query, (flight_id,))
-        if not results:
-            print(f"No available seats for flight {flight_id}.")
-            return []
-        return [dict(zip(self._columns, row)) for row in results]
+        seats_data = self.load_seats(flight_id, "flight_id")
+        seat_list = [
+            {"seat_id": seat["seat_id"], "reservation_id": seat["reservation_id"]}
+            for seat in seats_data
+        ]
+        available_seats = [
+            seat for seat in seat_list if seat["reservation_id"] in (None, "", 0)
+        ]
 
+        return available_seats
 
-
+    def list_seats_for_flight(self, flight_id: int) :
+        """
+        List seats for a flight.
+        :param flight_id: The ID of the flight
+        :return: A list containing the available seats or None if empty
+        """
+        seats_for_flight = self.load_seats(flight_id, "flight_id")
+        return seats_for_flight
