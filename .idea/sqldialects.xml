@@ -7,4 +7,8 @@
     <file url="file://$PROJECT_DIR$/utils/db.py" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/utils/db_test.py" dialect="PostgreSQL" />
   </component>
+  <component name="SqlResolveMappings">
+    <file url="file://$PROJECT_DIR$/utils/TableManagerdb.py" scope="" />
+    <file url="PROJECT" scope="{&quot;node&quot;:{  &quot;@negative&quot;:&quot;1&quot;,  &quot;group&quot;:{   &quot;@kind&quot;:&quot;root&quot;,   &quot;node&quot;:{    &quot;@negative&quot;:&quot;1&quot;   }  } }}" />
+  </component>
 </project>

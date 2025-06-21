@@ -1,6 +1,7 @@
 import pg8000 as db
 import time
-
+import logging
+logger = logging.getLogger("utils.db")
 
 class DatabaseManager:
     """
@@ -90,12 +91,12 @@ class DatabaseManager:
         For internal use only.
         """
         if DatabaseManager._shared_conn:
-            print("Disconnecting from database...")
+            logger.debug("Disconnecting from database...")
             DatabaseManager._shared_conn.close()
             DatabaseManager._shared_conn = None
             self._credentials = None
         else:
-            print("No connection to database to disconnect...")
+            logger.info("No connection to database to disconnect...")
 
     def check_connection(self) -> bool:
         """
@@ -105,14 +106,15 @@ class DatabaseManager:
         """
         try:
             if DatabaseManager._shared_conn is None:
-                print("No connection established... Attempting to reconnect...")
+                logger.debug("No DB connection; attempting to reconnect")
                 return self.reconnect()
             cursor = DatabaseManager._shared_conn.cursor()
             cursor.execute("SELECT 1")
             cursor.close()
+            logger.debug("DB connection is alive")
             return True
         except (db.DatabaseError, AttributeError) as e:
-            print(f"Error while connecting to database: {e}. Attempting to reconnect...")
+            logger.warning("DB health check failed: %s; reconnecting...", e)
             return self.reconnect()
 
     def reconnect(self) -> bool:
@@ -125,14 +127,14 @@ class DatabaseManager:
             retry_count = 0
             self.user_credentials = self._credentials
             while retry_count < self.max_retries:
-                print(f"reconnect attempt {retry_count + 1} of {self.max_retries}")
+                logger.debug("Reconnect attempt %d of %d", retry_count+1, self.max_retries)
                 if self._set_conn():
                     return True
                 else:
                     retry_count += 1
-                    print(f"Re-connection failed. Retrying in {self.retry_delay} seconds...")
+                    logger.debug("Reconnect failed; sleeping %s seconds", self.retry_delay)
                     time.sleep(self.retry_delay)
-            print("Failed to reconnect. after maximum retries.")
+            logger.error("Failed to reconnect after %d attempts", self.max_retries)
             return False
         finally:
             self.user_credentials = None
@@ -150,19 +152,18 @@ class DatabaseManager:
             "host": input("Enter database host (default: localhost): ") or "localhost",
             "port": input("Enter database port(default: 5432): ") or "5432",
         }
-
         self.display_credentials()
         confirmation = (input("Given current credentials, are you sure you want to attempt a new connection? (y/n): ")
                         .lower())
         if confirmation != "y":
-            print("Credentials change cancelled keeping current credentials")
+            logger.info("User cancelled credential change; keeping existing credentials")
             return
 
         original_credentials = self.credentials
         self.__stop_connection()
 
         if not self._set_conn():
-            print("Invalid credentials, connection not established... Returning to original connection...")
+            logger.warning("Invalid credentials, connection not established... Returning to original connection...")
             self.user_credentials = original_credentials
             self._set_conn()
 
@@ -176,28 +177,34 @@ class DatabaseManager:
 
     def _set_conn(self) -> bool:
         """"
-        Method to establish a connection to the PostgreSQL database. For internal use only.
+        Method to establish a connection to the PostgresSQL database. For internal use only.
         Sets the user_credentials to the credentials attribute if successful.
         :return: bool, true if connection established
         """
         if self.user_credentials is None:
-            print("Error in connection: New credentials are not set, established connection is maintained")
-            self.display_credentials()
+            logger.warning(
+                "New credentials not provided; continuing with previous credentials=%r",
+                self.credentials
+            )
             return False
         elif DatabaseManager._shared_conn is None:
-            print("Attempting to establish new connection")
+            logger.debug("Attempting to establish new connection to %s@%s:%s",
+      self.user_credentials["user"],
+            self.user_credentials["host"],
+            self.user_credentials["port"]
+            )
             try:
-                DatabaseManager._shared_conn = db.connect(
-                    database=self.user_credentials["database"],
-                    user=self.user_credentials["user"],
-                    password=self.user_credentials["password"],
-                    host=self.user_credentials["host"],
-                    port=self.user_credentials["port"]
-                )
+                DatabaseManager._shared_conn = (db.connect(
+                database=self.user_credentials["database"],
+                user=self.user_credentials["user"],
+                password=self.user_credentials["password"],
+                host=self.user_credentials["host"],
+                port=self.user_credentials["port"]
+                ))
             except db.DatabaseError as e:
-                print(f"Error connecting to the database: {e}")
+                logger.error("Error connecting to the database – %s", e)
                 return False
-        print("Connection established")
+        logger.debug("Database connection established")
         self._credentials = self.user_credentials
         self.user_credentials = None
         return True

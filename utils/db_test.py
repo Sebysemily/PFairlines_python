@@ -4,6 +4,13 @@ from Seatstb import SeatsTableManager
 from Flightstb import FlightsTableManager
 from utils.Reservationstb import ReservationsTableManager
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(name)s [%(levelname)s] %(message)s"
+)
+
 '''
 conn = pg8000.connect(host="localhost", user="postgres", password="1234", port="5432")
 cur = conn.cursor()
@@ -40,13 +47,11 @@ cur.execute("""CREATE TABLE seats (
 );
 """)
 
-
-
 conn.commit()
 cur.close()
 conn.close()
-'''
 
+'''
 
 flights_manager = FlightsTableManager(host="localhost", database="postgres", user="postgres", password="1234", port="5432",
                                table_name="flights")
@@ -57,8 +62,7 @@ plane_manager = PlaneTableManager(host="localhost", database="postgres", user="p
                                table_name="planes")
 reservations_manager = ReservationsTableManager(host="localhost", database="postgres", user="postgres", password="1234",
                                                 table_name="reservations")
-flights_manager.check_connection()
-flights_manager.reconnect()
+
 new_plane = {
     "name": "Airbus A320",
     "rows": 20,
